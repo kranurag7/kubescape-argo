@@ -17,7 +17,7 @@ jobs:
         run: curl -s https://raw.githubusercontent.com/armosec/kubescape/master/install.sh | /bin/bash
         
       - name: Scan YAML files
-        run: kubescape scan framework nsa -t 10 deployments/*.yaml
+        run: kubescape scan framework nsa deployments/*.yaml --fail-threshold 0
 
   build:
     runs-on: ubuntu-latest
