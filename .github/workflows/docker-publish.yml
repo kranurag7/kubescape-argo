@@ -1,11 +1,52 @@
-name: ci
-
+---
+name: build and push docker image
 on:
-  push:
-    branches:
-      - 'main'
+  push
 
 jobs:
+  release-docker:
+    name: Release docker image
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        
+      - name: Deploy docker image
+        uses: docker/build-push-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+          repository: kranurag7/kubescape-argo 
+          tag_with_ref: true
+          add_git_labels: true
+          tag_with_sha: true
+          
+      - name: Get git sha short
+        id: vars
+        run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+        
+      - name: Generate deploy manifest from Jinja template
+        uses: cuchi/jinja2-action@v1.1.0
+        with: 
+          template: tmpl/hello.j2
+          output_file: deployments/deployment.yaml
+          strict: true
+          variables: |
+            image_deploy_tag=sha-${{ steps.vars.outputs.sha_short }}
+            
+      - name: Commit deploy manifest on local repo
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit -s -m "[skip ci] Generate deployment manifests" 
+          
+      - name: Push deploy manifests to local repo
+        uses: ad-m/github-push-action@master
+        with: 
+          github_token: ${{ secrets.AUTO_COMMIT_TOKEN }}
+
   nsa-security-check:
     runs-on: ubuntu-latest
 
@@ -18,29 +59,3 @@ jobs:
         
       - name: Scan YAML files
         run: kubescape scan framework nsa deployments/*.yaml --fail-threshold 0
-
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      -
-        name: Checkout 
-        uses: actions/checkout@v2
-      -
-        name: Login to Docker Hub
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
-      -
-        name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-      -
-        name: Build and push
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/kubescape-argo:latest
-

@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello
+spec:
+  selector:
+    matchLabels:
+      app: hello
+  template:
+    metadata:
+      labels:
+        app: hello
+    spec:
+      containers:
+      - env:
+        - name: PORT
+          value: "8080"
+        image: kranurag7/kubescape-argo:{{ image_deploy_tag }}
+        imagePullPolicy: Always
+        name: server
+        ports:
+        - containerPort: 80
+      terminationGracePeriodSeconds: 5
