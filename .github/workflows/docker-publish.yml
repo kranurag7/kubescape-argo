@@ -39,8 +39,8 @@ jobs:
         name: Build and push
         uses: docker/build-push-action@v2
         with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
-          repository: ${{ secrets.DOCKER_USERNAME}}/kubescape-argo
-          tags: ${{ github-sha }},latest
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/kubescape-argo:latest
 
